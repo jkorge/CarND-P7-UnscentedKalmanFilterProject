@@ -2,6 +2,7 @@
 #include "Eigen/Dense"
 #include <iostream>
 #include <fstream>
+#include <string>
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -58,9 +59,13 @@ UKF::UKF() {
 
   // Filter needs to be intialized
   is_initialized_ = false;
+
+  // NIS
+  NIS_radar_ = 0;
+  NIS_laser_ = 0;
   
   /***********DO NOT MODIFY***********/
-  
+
   // Measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -309,7 +314,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   VectorXd z = VectorXd(n_z);
   z = meas_package.raw_measurements_;
 
-  //Apply Kalman Filter
+  //Apply oridinary Kalman Filter
   VectorXd y = z - H * x_;
   MatrixXd Ht = H.transpose();
   MatrixXd S = H * P_ * Ht + R;
@@ -322,6 +327,37 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   //new covariance
   MatrixXd I = MatrixXd::Identity(n_x_, n_x_);
   P_ = (I - K * H) * P_;
+
+  /*****************************************************************************
+   *  Compute Normalized Innovation Squared (NIS)
+   ****************************************************************************/
+
+  //create matrix for sigma points in measurement space
+  MatrixXd Zsig = MatrixXd(n_z, 2 * n_aug_ + 1);
+
+  //transform sigma points into measurement space
+  for (int i = 0; i < 2 * n_aug_ + 1; i++) {
+
+    // extract values for better readibility
+    double p_x = Xsig_pred_(0,i);
+    double p_y = Xsig_pred_(1,i);
+
+    // measurement model
+    Zsig(0,i) = p_x;                       //px
+    Zsig(1,i) = p_y;                       //py
+  }
+
+  //mean predicted measurement
+  VectorXd z_pred = VectorXd(n_z);
+  z_pred.fill(0.0);
+  for (int i=0; i < 2*n_aug_+1; i++) {
+      z_pred = z_pred + weights_(i) * Zsig.col(i);
+  }
+
+  VectorXd z_diff = z - z_pred;
+  NIS_laser_ = z_diff.transpose() * Si * z_diff;
+  cout<<"NIS_laser_ ="<<NIS_laser_<<endl;
+
 
 }
 
@@ -424,7 +460,8 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   }
 
   //Kalman gain K;
-  MatrixXd K = Tc * S.inverse();
+  MatrixXd Si = S.inverse();
+  MatrixXd K = Tc * Si;
 
   //residual
   VectorXd z_diff = z - z_pred;
@@ -436,4 +473,9 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   //update state mean and covariance matrix
   x_ = x_ + K * z_diff;
   P_ = P_ - K*S*K.transpose();
+
+  /*****************************************************************************
+   *  Compute Normalized Innovation Squared (NIS)
+   ****************************************************************************/
+  NIS_radar_ = z_diff.transpose() * Si * z_diff;
 }

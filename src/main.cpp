@@ -10,6 +10,9 @@ using namespace std;
 // for convenience
 using json = nlohmann::json;
 
+//File to write NIS values to
+ofstream out_file_;
+
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -90,7 +93,7 @@ int main()
           		iss >> timestamp;
           		meas_package.timestamp_ = timestamp;
           }
-          float x_gt;
+        float x_gt;
     	  float y_gt;
     	  float vx_gt;
     	  float vy_gt;
@@ -105,7 +108,7 @@ int main()
     	  gt_values(3) = vy_gt;
     	  ground_truth.push_back(gt_values);
           
-          //Call ProcessMeasurment(meas_package) for Kalman filter
+        //Call ProcessMeasurment(meas_package) for Kalman filter
     	  ukf.ProcessMeasurement(meas_package);    	  
 
     	  //Push the current estimated x,y positon from the Kalman filter's state vector
@@ -139,7 +142,17 @@ int main()
           auto msg = "42[\"estimate_marker\"," + msgJson.dump() + "]";
           // std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-	  
+
+        // output the NIS values
+        out_file_.open("../NIS.csv", std::ios_base::app);
+        if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+          out_file_ << "L," << ukf.NIS_laser_ << ",\n";
+        }
+        else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+          out_file_ << "R," << ukf.NIS_radar_ << ",\n";
+        }
+        out_file_.close();
+
         }
       } else {
         
