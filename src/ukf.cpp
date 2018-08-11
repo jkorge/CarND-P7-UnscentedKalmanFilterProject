@@ -1,6 +1,7 @@
 #include "ukf.h"
 #include "Eigen/Dense"
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -31,8 +32,36 @@ UKF::UKF() {
   // Process noise standard deviation yaw acceleration in rad/s^2
   // Assuming a loop can be completed in 10s and this speed (2pi rad/10s) is attainable in 3 secs (all a total guess)
   std_yawdd_ = 0.2;
+
+  // State vector dimensions
+  n_x_ = 5;
+
+  // Lambda coefficient
+  lambda_ = 3 - n_x_;
+
+  // Number of augmented state dimensions
+  n_aug_ = 7;
+
+  // Predicted sigma points
+  Xsig_pred_ = MatrixXd(n_x_, 2*n_aug_+1);
+
+  // Time of measurement
+  time_us_ = 0;
+
+  // Weights for averaging over sigma points
+  weights_ = VectorXd(2*n_aug_+1);
+
+  weights_(0) = lambda_/(lambda_+n_aug_);
+  for (int i=1;i<2*n_aug_+1;i++){
+    weights_(i) = 0.5/(n_aug_+lambda_);
+  }
+
+  // Filter needs to be intialized
+  is_initialized_ = false;
   
-  //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
+  /***********DO NOT MODIFY***********/
+  
+  // Measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
 
@@ -47,40 +76,8 @@ UKF::UKF() {
 
   // Radar measurement noise standard deviation radius change in m/s
   std_radrd_ = 0.3;
-  //DO NOT MODIFY measurement noise values above these are provided by the sensor manufacturer.
-  
-  /**
-  TODO:
 
-  Complete the initialization. See ukf.h for other member properties.
-
-  Hint: one or more values initialized above might be wildly off...
-  */
-
-  //State vector dimensions
-  n_x_ = 5;
-
-  //Lambda coefficient
-  lambda_ = 3 - n_x_;
-
-  //Number of augmented state dimensions
-  n_aug_ = 7;
-
-  //Predicted sigma points
-  Xsig_pred_ = MatrixXd(n_x_, 2*n_aug_+1);
-
-  //Time of measurement
-  time_us_ = 0;
-
-  //Weights for averaging over sigma points
-  weights_ = VectorXd(2*n_aug_+1);
-
-  weights_(0) = lambda_/(lambda_+n_aug_);
-  for (int i=1;i<2*n_aug_+1;i++){
-    weights_(i) = 0.5/(n_aug_+lambda_);
-  }
-
-  is_initialized_ = false;
+  /***********DO NOT MODIFY***********/
 
 }
 
@@ -93,12 +90,6 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
-
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
 
   /*****************************************************************************
    *  Initialization
@@ -176,12 +167,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
  * measurement and this one.
  */
 void UKF::Prediction(double delta_t) {
-  /**
-  TODO:
-
-  Complete this function! Estimate the object's location. Modify the state
-  vector, x_. Predict sigma points, the state, and the state covariance matrix.
-  */
 
   /*****************************************************************************
    *  Create Augmented Sigma Points of Current State
@@ -302,14 +287,6 @@ void UKF::Prediction(double delta_t) {
  * @param {MeasurementPackage} meas_package
  */
 void UKF::UpdateLidar(MeasurementPackage meas_package) {
-  /**
-  TODO:
-
-  Complete this function! Use lidar data to update the belief about the object's
-  position. Modify the state vector, x_, and covariance, P_.
-
-  You'll also need to calculate the lidar NIS.
-  */
 
   /*****************************************************************************
    *  Update State Mean & Covariance
@@ -355,14 +332,6 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
  * @param {MeasurementPackage} meas_package
  */
 void UKF::UpdateRadar(MeasurementPackage meas_package) {
-  /**
-  TODO:
-
-  Complete this function! Use radar data to update the belief about the object's
-  position. Modify the state vector, x_, and covariance, P_.
-
-  You'll also need to calculate the radar NIS.
-  */
 
   /*****************************************************************************
    *  Predict Measurement Mean & Covariance
