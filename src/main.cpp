@@ -146,10 +146,10 @@ int main()
         // output the NIS values
         out_file_.open("../NIS.csv", std::ios_base::app);
         if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
-          out_file_ << "L," << ukf.NIS_laser_ << ",\n";
+          out_file_ << "L," << ukf.NIS_laser_ << "\n";
         }
         else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
-          out_file_ << "R," << ukf.NIS_radar_ << ",\n";
+          out_file_ << "R," << ukf.NIS_radar_ << "\n";
         }
         out_file_.close();
 

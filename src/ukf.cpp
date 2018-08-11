@@ -356,7 +356,6 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   VectorXd z_diff = z - z_pred;
   NIS_laser_ = z_diff.transpose() * Si * z_diff;
-  cout<<"NIS_laser_ ="<<NIS_laser_<<endl;
 
 
 }
